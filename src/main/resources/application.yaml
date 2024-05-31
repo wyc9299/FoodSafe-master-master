@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: FoodSafe
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:food.db
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    properties:
+        format_sql: true
+    database-platform: com.my.foodsafe.dialect.SQLiteDialect
+
