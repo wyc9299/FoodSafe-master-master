@@ -14,5 +14,4 @@ spring:
 google:
   vision:
     api:
-      key: AIzaSyBa08m_sX3yB1VgfeEh9ue_mSO6QgVkdTI
-
+      key:

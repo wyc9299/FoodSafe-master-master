@@ -1,6 +1,8 @@
 package com.my.foodsafe.controllers;
 
+import com.my.foodsafe.pojo.MUser;
 import com.my.foodsafe.pojo.Restaurant;
+import com.my.foodsafe.repositories.IUserRepository;
 import com.my.foodsafe.services.IRestaurantService;
 import com.my.foodsafe.utilities.IUUIDGenerator;
 import com.my.foodsafe.utilities.TestUpload;
@@ -19,6 +21,8 @@ class RestaurantController {
     private IRestaurantService restaurantService;
     @Autowired
     private TestUpload testUpload;
+    @Autowired
+    private IUserRepository iUserRepository;
 
     @GetMapping("/")
     @ResponseBody

@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 @Repository
 public interface IRestaurantRepository extends JpaRepository<Restaurant, String> {
     Restaurant findByRestaurantName(String restaurantName);
+
 }

@@ -19,4 +19,8 @@ public class MUser implements Serializable {
     @Id
     private String id;
     private String name;
+    private Integer identity;
+    private String pwd;
+    private String email;
+    private Integer age;
 }
