@@ -1,15 +1,22 @@
 package com.my.foodsafe.services;
 
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.vision.v1.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.protobuf.ByteString;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,54 +33,35 @@ public class OCRService implements IOCRService {
     }
 
     public String processOCR(MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+        // 加载凭证
+        GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream("C:\\Users\\danie\\Downloads\\citric-expanse-425013-h9-d495b37938ab.json"));
+        ImageAnnotatorSettings settings = ImageAnnotatorSettings.newBuilder()
+                .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
+                .build();
+        ImageAnnotatorClient client = ImageAnnotatorClient.create(settings);
+
+        // 使用Google Cloud Vision API进行OCR文字识别
+        ByteString imgBytes = ByteString.copyFrom(file.getBytes());
+        Image image = Image.newBuilder().setContent(imgBytes).build();
+        Feature feature = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
+        AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feature).setImage(image).build();
+
+        List<AnnotateImageRequest> requests = new ArrayList<>();
+        requests.add(request);
+
+        BatchAnnotateImagesResponse responses = client.batchAnnotateImages(requests);
+        AnnotateImageResponse response = responses.getResponsesList().get(0);
+
+        String ocrText = response.getTextAnnotationsList().isEmpty() ? "" : response.getTextAnnotationsList().get(0).getDescription();
+
+        // 使用正则表达式提取品名
+        Pattern pattern = Pattern.compile("品名/用途:\\s*([^/]+)");
+        Matcher matcher = pattern.matcher(ocrText);
+        String productName = "";
+        while (matcher.find()) {
+            productName = matcher.group(1);
         }
 
-        // 将文件转换为 Base64 编码字符串
-        String base64Image = java.util.Base64.getEncoder().encodeToString(file.getBytes());
-
-        // 创建 JSON 请求体
-        JsonObject requestBody = new JsonObject();
-        JsonArray requestsArray = new JsonArray();
-        JsonObject requestObject = new JsonObject();
-        JsonObject imageObject = new JsonObject();
-        imageObject.addProperty("content", base64Image);
-        JsonObject featureObject = new JsonObject();
-        featureObject.addProperty("type", "TEXT_DETECTION");
-        requestObject.add("image", imageObject);
-        requestObject.add("features", new JsonArray());
-        requestObject.getAsJsonArray("features").add(featureObject);
-        requestsArray.add(requestObject);
-        requestBody.add("requests", requestsArray);
-
-        // 设置 HTTP 请求头
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
-
-        // 调用 Google Cloud Vision API
-        String visionApiUrl = "https://vision.googleapis.com/v1/images:annotate?key=" + apiKey;
-        ResponseEntity<String> response = restTemplate.postForEntity(visionApiUrl, entity, String.class);
-
-        if (response.getStatusCode() == HttpStatus.OK) {
-            // 解析响应体
-            JsonObject jsonResponse = JsonParser.parseString(response.getBody()).getAsJsonObject();
-            String ocrText = jsonResponse.getAsJsonArray("responses").get(0)
-                    .getAsJsonObject().getAsJsonArray("textAnnotations").get(0)
-                    .getAsJsonObject().get("description").getAsString();
-
-            // 使用正则表达式提取品名
-            Pattern pattern = Pattern.compile("品名/用途:\\s*([^/]+)");
-            Matcher matcher = pattern.matcher(ocrText);
-            String productName = "";
-            if (matcher.find()) {
-                productName = matcher.group(1);
-            }
-            return productName;
-        } else {
-            throw new RuntimeException("Failed to call Google Cloud Vision API: " + response.getStatusCode());
-        }
+        return "dd";
     }
 }
